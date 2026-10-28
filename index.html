@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -334,6 +333,136 @@
         footer span {
             color: #f4c77b;
         }
+        
+/* КОРЗИНА ЗАКАЗА */
+.cart-box {
+    margin-top: 35px;
+    padding: 25px;
+    background: #fff;
+    border: 2px solid #ead8c7;
+    border-radius: 14px;
+    box-shadow: 0 5px 20px rgba(60, 30, 10, 0.08);
+}
+
+.cart-box h2 {
+    color: #b82025;
+    margin-bottom: 18px;
+}
+
+.cart-empty {
+    color: #79695d;
+    text-align: center;
+    padding: 15px 0;
+}
+
+.cart-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid #eee0d1;
+}
+
+.cart-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.cart-item-name {
+    font-weight: bold;
+    overflow-wrap: anywhere;
+}
+
+.cart-item-price {
+    color: #b82025;
+    font-size: 14px;
+}
+
+.cart-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cart-controls button {
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 6px;
+    background: #b82025;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.cart-controls .remove-button {
+    background: #79695d;
+    font-size: 16px;
+}
+
+.cart-total {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 22px 0;
+    font-size: 21px;
+    font-weight: bold;
+}
+
+.cart-checkout {
+    display: block;
+    width: 100%;
+    padding: 15px;
+    background: #25D366;
+    color: #123b22;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.cart-checkout:hover {
+    background: #1fbd5b;
+}
+
+.add-cart-button {
+    padding: 9px 13px;
+    background: #b82025;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.add-cart-button:hover {
+    background: #8e171b;
+}
+
+.cart-count {
+    display: inline-block;
+    background: #b82025;
+    color: white;
+    border-radius: 20px;
+    padding: 2px 8px;
+    font-size: 13px;
+}
+
+@media (max-width: 550px) {
+    .cart-box {
+        padding: 16px;
+    }
+
+    .cart-item {
+        align-items: flex-start;
+    }
+
+    .cart-controls {
+        gap: 6px;
+    }
+}
 
         /* 10. АДАПТАЦИЯ ДЛЯ ТЕЛЕФОНОВ */
         @media (max-width: 850px) {
@@ -444,6 +573,27 @@
 
             <!-- Здесь отображаются карточки блюд -->
             <div class="menu-grid" id="menuGrid"></div>
+             
+<!-- КОРЗИНА -->
+<div class="cart-box" id="cart">
+    <h2>
+        🛒 Корзина
+        <span class="cart-count" id="cartCount">0</span>
+    </h2>
+
+    <div id="cartItems">
+        <p class="cart-empty">Корзина пока пуста</p>
+    </div>
+
+    <div class="cart-total">
+        <span>Итого:</span>
+        <span id="cartTotal">0 сом</span>
+    </div>
+
+    <button class="cart-checkout" id="checkoutButton">
+        Заказать через WhatsApp
+    </button>
+</div>
 
         </div>
     </section>
@@ -1201,10 +1351,13 @@
                             </span>
 
                             <button
-                                class="order-button"
+                
+                                <button
+                                class="add-cart-button"
                                 data-name="${dish.name}"
                             >
-                                Выбрать
+                               + В корзину
+                               
                             </button>
                         </div>
                     </div>
@@ -1216,6 +1369,158 @@
         searchInput.addEventListener("input", renderMenu);
 
         // Обработка нажатия кнопки «Выбрать».
+        
+/* КОРЗИНА И ЗАКАЗ ЧЕРЕЗ WHATSAPP */
+
+const cart = new Map();
+
+const cartItems = document.getElementById("cartItems");
+const cartCount = document.getElementById("cartCount");
+const cartTotal = document.getElementById("cartTotal");
+const checkoutButton = document.getElementById("checkoutButton");
+
+function renderCart() {
+    let total = 0;
+    let count = 0;
+
+    cart.forEach(item => {
+        total += item.price * item.quantity;
+        count += item.quantity;
+    });
+
+    cartCount.textContent = count;
+    cartTotal.textContent = total + " сом";
+
+    if (cart.size === 0) {
+        cartItems.innerHTML =
+            '<p class="cart-empty">Корзина пока пуста</p>';
+        return;
+    }
+
+    cartItems.innerHTML = Array.from(cart.values()).map(item => `
+        <div class="cart-item">
+            <div class="cart-item-info">
+                <div class="cart-item-name">${item.name}</div>
+                <div class="cart-item-price">
+                    ${item.price} сом × ${item.quantity}
+                    = ${item.price * item.quantity} сом
+                </div>
+            </div>
+
+            <div class="cart-controls">
+                <button data-action="minus"
+                    data-name="${item.name}"
+                    aria-label="Уменьшить количество">−</button>
+
+                <span>${item.quantity}</span>
+
+                <button data-action="plus"
+                    data-name="${item.name}"
+                    aria-label="Увеличить количество">+</button>
+
+                <button class="remove-button"
+                    data-action="remove"
+                    data-name="${item.name}"
+                    aria-label="Удалить блюдо">×</button>
+            </div>
+        </div>
+    `).join("");
+}
+
+// Добавление блюда в корзину.
+menuGrid.addEventListener("click", event => {
+    const button = event.target.closest(".add-cart-button");
+    if (!button) return;
+
+    const dish = dishes.find(
+        item => item.name === button.dataset.name
+    );
+
+    if (!dish) return;
+
+    if (cart.has(dish.name)) {
+        cart.get(dish.name).quantity++;
+    } else {
+        cart.set(dish.name, {
+            name: dish.name,
+            price: dish.price,
+            quantity: 1
+        });
+    }
+
+    renderCart();
+
+    // Краткое подтверждение добавления.
+    const oldText = button.textContent;
+    button.textContent = "✓ Добавлено";
+
+    setTimeout(() => {
+        button.textContent = oldText;
+    }, 900);
+});
+
+// Изменение количества или удаление блюда.
+cartItems.addEventListener("click", event => {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+
+    const name = button.dataset.name;
+    const action = button.dataset.action;
+    const item = cart.get(name);
+
+    if (!item) return;
+
+    if (action === "plus") {
+        item.quantity++;
+    } else if (action === "minus") {
+        item.quantity--;
+
+        if (item.quantity <= 0) {
+            cart.delete(name);
+        }
+    } else if (action === "remove") {
+        cart.delete(name);
+    }
+
+    renderCart();
+});
+
+// Формирование общего заказа в WhatsApp.
+checkoutButton.addEventListener("click", () => {
+    if (cart.size === 0) {
+        alert("Сначала добавьте блюда в корзину.");
+        return;
+    }
+
+    let total = 0;
+
+    const orderLines = Array.from(cart.values()).map(item => {
+        const subtotal = item.price * item.quantity;
+        total += subtotal;
+
+        return `${item.name} — ${item.quantity} шт. × ` +
+            `${item.price} сом = ${subtotal} сом`;
+    });
+
+    const message =
+        "Здравствуйте! Хочу оформить заказ в ресторане «ПЛОВ КЕБАБ».\n\n" +
+        "Мой заказ:\n" +
+        orderLines.join("\n") +
+        "\n\nИтого: " + total + " сом\n\n" +
+        "Подтвердите, пожалуйста, заказ.";
+
+    const phone = "996700020262";
+
+    const url = "https://wa.me/" + phone +
+        "?text=" + encodeURIComponent(message);
+
+    window.open(url, "_blank", "noopener,noreferrer");
+});
+
+// Инициализация корзины.
+renderCart();
+
+        // Обработка заказа через WhatsApp.
         menuGrid.addEventListener("click", event => {
             const button = event.target.closest(".order-button");
 
@@ -1225,9 +1530,34 @@
 
             const dishName = button.dataset.name;
 
-            alert(
-                "Вы выбрали блюдо: " + dishName +
-                "\nДля заказа свяжитесь с нами по телефону."
+            // Находим блюдо и его цену.
+            const dish = dishes.find(item => item.name === dishName);
+
+            if (!dish) {
+                alert("Не удалось найти это блюдо. Попробуйте ещё раз.");
+                return;
+            }
+
+            // Номер WhatsApp в международном формате без плюса.
+            const phone = "996700020262";
+
+            // Формируем текст заказа.
+            const message =
+                "Здравствуйте! Хочу заказать в ресторане «ПЛОВ КЕБАБ».\n\n" +
+                "Блюдо: " + dish.name + "\n" +
+                "Цена: " + dish.price + " сом\n\n" +
+                "Подтвердите, пожалуйста, заказ.";
+
+            // Кодируем сообщение для ссылки WhatsApp.
+            const whatsappUrl =
+                "https://wa.me/" + phone +
+                "?text=" + encodeURIComponent(message);
+
+            // Открываем WhatsApp с готовым заказом.
+            window.open(
+                whatsappUrl,
+                "_blank",
+                "noopener,noreferrer"
             );
         });
 
@@ -1242,3 +1572,4 @@
 
 </body>
 </html>
+
